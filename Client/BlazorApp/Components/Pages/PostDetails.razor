@@ -1,0 +1,117 @@
+@page "/posts/{Id:int}"
+@using ApiContracts
+@using BlazorApp.Services
+@inject IPostService PostService
+@inject ICommentService CommentService
+@inject IUserService UserService
+
+<PageTitle>Post Details</PageTitle>
+
+<div class="container mt-4">
+    <a href="/" class="btn btn-secondary mb-3">Back to posts</a>
+
+    @if (isLoading)
+    {
+        <p>Loading post...</p>
+    }
+    else if (errorMessage != null)
+    {
+        <p class="text-danger">@errorMessage</p>
+    }
+    else if (post != null)
+    {
+        <div class="card mb-4">
+            <div class="card-body">
+                <h1>@post.Title</h1>
+                <p>@post.Body</p>
+                <p>Author: @authorName</p>
+            </div>
+        </div>
+
+        <h3>Comments</h3>
+
+        @if (comments.Count == 0)
+        {
+            <p>No comments yet.</p>
+        }
+        else
+        {
+            @foreach (CommentDto comment in comments)
+            {
+                <div class="card mb-2">
+                    <div class="card-body">
+                        <p>@comment.Body</p>
+                    </div>
+                </div>
+            }
+        }
+
+        <h4 class="mt-4">Add a comment</h4>
+
+        <textarea class="form-control mb-2"
+                  @bind="newComment"
+                  placeholder="Write your comment...">
+        </textarea>
+
+        <button class="btn btn-primary"
+                @onclick="AddCommentAsync"
+                disabled="@string.IsNullOrWhiteSpace(newComment)">
+            Add comment
+        </button>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private PostDto? post;
+    private List<CommentDto> comments = new();
+    private string authorName = "";
+    private string newComment = "";
+    private bool isLoading = true;
+    private string? errorMessage;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        try
+        {
+            post = await PostService.GetSinglePostAsync(Id);
+
+            UserDto author = await UserService.GetSingleUserAsync(post.UserId);
+            authorName = author.Username;
+
+            comments = (await CommentService.GetManyCommentsAsync(postId: Id)).ToList();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task AddCommentAsync()
+    {
+        try
+        {
+            CreateCommentDto request = new()
+            {
+                Body = newComment,
+                UserId = 1,
+                PostId = Id
+            };
+
+            await CommentService.AddCommentAsync(request);
+
+            newComment = "";
+            comments = (await CommentService.GetManyCommentsAsync(postId: Id)).ToList();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+    }
+}
