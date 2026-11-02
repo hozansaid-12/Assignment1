@@ -25,7 +25,7 @@ public class UserFileRepository : IUserRepository
 
         int maxId = users.Count > 0
             ? users.Max(u => u.Id)
-            : 1;
+            : 0;
 
         user.Id = maxId + 1;
 

@@ -1,11 +1,27 @@
-﻿@page "/"
+@page "/"
 @using ApiContracts
 @using BlazorApp.Services
+@using BlazorApp.Auth
 @inject IPostService PostService
+@inject NavigationManager NavMgr
+@inject AuthenticationStateProvider AuthProvider
 
 <PageTitle>Posts</PageTitle>
 
 <div class="container mt-4">
+    <AuthorizeView>
+        <Authorized>
+            <h3>Hello, @context.User.Identity?.Name</h3>
+            <button class="btn btn-danger mb-3" @onclick="LogoutAsync">
+                Log out
+            </button>
+        </Authorized>
+        <NotAuthorized>
+            <p>You are not logged in.</p>
+            <a href="/login" class="btn btn-primary">Go to login</a>
+        </NotAuthorized>
+    </AuthorizeView>
+
     <h1>Posts</h1>
 
     @if (isLoading)
@@ -55,5 +71,11 @@
         {
             isLoading = false;
         }
+    }
+
+    private async Task LogoutAsync()
+    {
+        await ((SimpleAuthProvider)AuthProvider).Logout();
+        NavMgr.NavigateTo("/login");
     }
 }

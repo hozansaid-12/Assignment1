@@ -1,4 +1,5 @@
 @page "/create-post"
+@attribute [Authorize]
 @using ApiContracts
 @using BlazorApp.Services
 @inject IPostService PostService
@@ -32,9 +33,29 @@
 </div>
 
 @code {
+    [CascadingParameter]
+    public Task<AuthenticationState> State { get; set; } = default!;
+
     private string title = "";
     private string body = "";
     private string? errorMessage;
+    private int userId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        AuthenticationState authenticationState = await State;
+        var claimsPrincipal = authenticationState.User;
+
+        if (claimsPrincipal.Identity is null || !claimsPrincipal.Identity.IsAuthenticated)
+        {
+            return;
+        }
+
+        string userIdAsString = claimsPrincipal.Claims
+            .Single(c => c.Type == "Id").Value;
+
+        userId = int.Parse(userIdAsString);
+    }
 
     private async Task CreatePostAsync()
     {
@@ -44,7 +65,7 @@
             {
                 Title = title,
                 Body = body,
-                UserId = 1
+                UserId = userId
             };
 
             PostDto createdPost = await PostService.AddPostAsync(request);

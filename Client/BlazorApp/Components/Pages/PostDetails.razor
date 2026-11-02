@@ -46,18 +46,25 @@
             }
         }
 
-        <h4 class="mt-4">Add a comment</h4>
+        <AuthorizeView>
+            <Authorized>
+                <h4 class="mt-4">Add a comment</h4>
 
-        <textarea class="form-control mb-2"
-                  @bind="newComment"
-                  placeholder="Write your comment...">
-        </textarea>
+                <textarea class="form-control mb-2"
+                          @bind="newComment"
+                          placeholder="Write your comment...">
+                </textarea>
 
-        <button class="btn btn-primary"
-                @onclick="AddCommentAsync"
-                disabled="@string.IsNullOrWhiteSpace(newComment)">
-            Add comment
-        </button>
+                <button class="btn btn-primary"
+                        @onclick="AddCommentAsync"
+                        disabled="@string.IsNullOrWhiteSpace(newComment)">
+                    Add comment
+                </button>
+            </Authorized>
+            <NotAuthorized>
+                <p class="mt-4">Please <a href="/login">log in</a> to add a comment.</p>
+            </NotAuthorized>
+        </AuthorizeView>
     }
 </div>
 
@@ -65,17 +72,32 @@
     [Parameter]
     public int Id { get; set; }
 
+    [CascadingParameter]
+    public Task<AuthenticationState> State { get; set; } = default!;
+
     private PostDto? post;
     private List<CommentDto> comments = new();
     private string authorName = "";
     private string newComment = "";
     private bool isLoading = true;
     private string? errorMessage;
+    private int? userId;
 
     protected override async Task OnParametersSetAsync()
     {
         try
         {
+            AuthenticationState authenticationState = await State;
+            var claimsPrincipal = authenticationState.User;
+
+            if (claimsPrincipal.Identity?.IsAuthenticated == true)
+            {
+                string userIdAsString = claimsPrincipal.Claims
+                    .Single(c => c.Type == "Id").Value;
+
+                userId = int.Parse(userIdAsString);
+            }
+
             post = await PostService.GetSinglePostAsync(Id);
 
             UserDto author = await UserService.GetSingleUserAsync(post.UserId);
@@ -97,10 +119,16 @@
     {
         try
         {
+            if (userId is null)
+            {
+                errorMessage = "You must be logged in to comment.";
+                return;
+            }
+
             CreateCommentDto request = new()
             {
                 Body = newComment,
-                UserId = 1,
+                UserId = userId.Value,
                 PostId = Id
             };
 
