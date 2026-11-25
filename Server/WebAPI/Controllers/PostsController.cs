@@ -2,8 +2,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using ApiContracts;
 using Entities;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using RepositoryContracts;
 
 namespace WebAPI.Controllers;
@@ -20,31 +22,25 @@ public class PostsController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<ActionResult<Post>> AddPost(
-        [FromBody] Post request)
+    public async Task<ActionResult<PostDto>> AddPost(
+        [FromBody] CreatePostDto request)
     {
-        Post post = new()
-        {
-            Title = request.Title,
-            Body = request.Body,
-            UserId = request.UserId
-        };
+        Post post = new(request.Title, request.Body, request.UserId);
 
         Post created = await postRepo.AddAsync(post);
 
-        return Created($"/posts/{created.Id}", created);
+        PostDto response = ToDto(created);
+
+        return Created($"/posts/{created.Id}", response);
     }
 
     [HttpPut("{id:int}")]
     public async Task<IActionResult> UpdatePost(
-        int id, [FromBody] Post request)
+        int id, [FromBody] CreatePostDto request)
     {
-        Post post = new()
+        Post post = new(request.Title, request.Body, request.UserId)
         {
-            Id = id,
-            Title = request.Title,
-            Body = request.Body,
-            UserId = request.UserId
+            Id = id
         };
 
         await postRepo.UpdateAsync(post);
@@ -53,15 +49,15 @@ public class PostsController : ControllerBase
     }
 
     [HttpGet("{id:int}")]
-    public async Task<ActionResult<Post>> GetSinglePost(int id)
+    public async Task<ActionResult<PostDto>> GetSinglePost(int id)
     {
         Post post = await postRepo.GetSingleAsync(id);
 
-        return Ok(post);
+        return Ok(ToDto(post));
     }
 
     [HttpGet]
-    public ActionResult<IEnumerable<Post>> GetManyPosts(
+    public async Task<ActionResult<IEnumerable<PostDto>>> GetManyPosts(
         [FromQuery] string? titleContains,
         [FromQuery] int? userId)
     {
@@ -79,7 +75,17 @@ public class PostsController : ControllerBase
                 post.UserId == userId.Value);
         }
 
-        return Ok(posts.ToList());
+        List<PostDto> result = await posts
+            .Select(post => new PostDto
+            {
+                Id = post.Id,
+                Title = post.Title,
+                Body = post.Body,
+                UserId = post.UserId
+            })
+            .ToListAsync();
+
+        return Ok(result);
     }
 
     [HttpDelete("{id:int}")]
@@ -89,4 +95,16 @@ public class PostsController : ControllerBase
 
         return NoContent();
     }
+
+    private static PostDto ToDto(Post post)
+    {
+        return new PostDto
+        {
+            Id = post.Id,
+            Title = post.Title,
+            Body = post.Body,
+            UserId = post.UserId
+        };
+    }
 }
+

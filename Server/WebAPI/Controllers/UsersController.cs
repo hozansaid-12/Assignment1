@@ -1,4 +1,3 @@
-
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -6,6 +5,7 @@ using System.Threading.Tasks;
 using ApiContracts;
 using Entities;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using RepositoryContracts;
 
 namespace WebAPI.Controllers;
@@ -27,11 +27,7 @@ public class UsersController : ControllerBase
     {
         await VerifyUserNameIsAvailableAsync(request.Username);
 
-        User user = new()
-        {
-            Username = request.Username,
-            Password = request.Password
-        };
+        User user = new(request.Username, request.Password);
 
         User created = await userRepo.AddAsync(user);
 
@@ -44,16 +40,13 @@ public class UsersController : ControllerBase
         return Created($"/users/{dto.Id}", dto);
     }
 
-   
     [HttpPut("{id:int}")]
     public async Task<IActionResult> UpdateUser(
         int id, [FromBody] CreateUserDto request)
     {
-        User user = new()
+        User user = new(request.Username, request.Password)
         {
-            Id = id,
-            Username = request.Username,
-            Password = request.Password
+            Id = id
         };
 
         await userRepo.UpdateAsync(user);
@@ -61,7 +54,6 @@ public class UsersController : ControllerBase
         return NoContent();
     }
 
-    
     [HttpGet("{id:int}")]
     public async Task<ActionResult<UserDto>> GetSingleUser(int id)
     {
@@ -76,9 +68,8 @@ public class UsersController : ControllerBase
         return Ok(dto);
     }
 
-    
     [HttpGet]
-    public ActionResult<IEnumerable<UserDto>> GetManyUsers(
+    public async Task<ActionResult<IEnumerable<UserDto>>> GetManyUsers(
         [FromQuery] string? usernameContains)
     {
         IQueryable<User> users = userRepo.GetManyAsync();
@@ -89,16 +80,15 @@ public class UsersController : ControllerBase
                 user.Username.Contains(usernameContains));
         }
 
-        IEnumerable<UserDto> dtos = users.Select(user => new UserDto
+        IEnumerable<UserDto> dtos = await users.Select(user => new UserDto
         {
             Id = user.Id,
             Username = user.Username
-        }).ToList();
+        }).ToListAsync();
 
         return Ok(dtos);
     }
 
-    
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> DeleteUser(int id)
     {
@@ -107,11 +97,10 @@ public class UsersController : ControllerBase
         return NoContent();
     }
 
- 
-    private Task VerifyUserNameIsAvailableAsync(string username)
+    private async Task VerifyUserNameIsAvailableAsync(string username)
     {
-        bool usernameExists = userRepo.GetManyAsync()
-            .Any(user => user.Username == username);
+        bool usernameExists = await userRepo.GetManyAsync()
+            .AnyAsync(user => user.Username == username);
 
         if (usernameExists)
         {
@@ -119,6 +108,5 @@ public class UsersController : ControllerBase
                 $"Username '{username}' is already taken");
         }
 
-        return Task.CompletedTask;
     }
 }

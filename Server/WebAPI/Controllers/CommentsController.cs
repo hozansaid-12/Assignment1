@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Entities;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using RepositoryContracts;
 
 namespace WebAPI.Controllers;
@@ -23,12 +24,10 @@ public class CommentsController : ControllerBase
     public async Task<ActionResult<Comment>> AddComment(
         [FromBody] Comment request)
     {
-        Comment comment = new()
-        {
-            Body = request.Body,
-            UserId = request.UserId,
-            PostId = request.PostId
-        };
+        Comment comment = new(
+            request.Body,
+            request.UserId,
+            request.PostId);
 
         Comment created = await commentRepo.AddAsync(comment);
 
@@ -39,12 +38,12 @@ public class CommentsController : ControllerBase
     public async Task<IActionResult> UpdateComment(
         int id, [FromBody] Comment request)
     {
-        Comment comment = new()
+        Comment comment = new(
+            request.Body,
+            request.UserId,
+            request.PostId)
         {
-            Id = id,
-            Body = request.Body,
-            UserId = request.UserId,
-            PostId = request.PostId
+            Id = id
         };
 
         await commentRepo.UpdateAsync(comment);
@@ -61,7 +60,7 @@ public class CommentsController : ControllerBase
     }
 
     [HttpGet]
-    public ActionResult<IEnumerable<Comment>> GetManyComments(
+    public async Task<ActionResult<IEnumerable<Comment>>> GetManyComments(
         [FromQuery] int? userId,
         [FromQuery] int? postId)
     {
@@ -77,7 +76,7 @@ public class CommentsController : ControllerBase
             comments = comments.Where(c => c.PostId == postId.Value);
         }
 
-        return Ok(comments.ToList());
+        return Ok(await comments.ToListAsync());
     }
 
     [HttpDelete("{id:int}")]

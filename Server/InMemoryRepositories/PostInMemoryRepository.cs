@@ -1,3 +1,4 @@
+
 using Entities;
 using RepositoryContracts;
 
@@ -6,32 +7,34 @@ namespace InMemoryRepositories;
 public class PostInMemoryRepository : IPostRepository
 {
     private readonly List<Post> posts = new();
-public PostInMemoryRepository()
-{
-    posts.Add(new Post
-    {
-        Id = 1,
-        Title = "First post",
-        Body = "This is my first post",
-        UserId = 1
-    });
 
-    posts.Add(new Post
+    public PostInMemoryRepository()
     {
-        Id = 2,
-        Title = "Hello everyone",
-        Body = "Welcome to the forum",
-        UserId = 2
-    });
+        posts.Add(new Post(
+            "First post",
+            "This is my first post",
+            1)
+        {
+            Id = 1
+        });
 
-    posts.Add(new Post
-    {
-        Id = 3,
-        Title = "My third post",
-        Body = "This is another post",
-        UserId = 1
-    });
-}
+        posts.Add(new Post(
+            "Hello everyone",
+            "Welcome to the forum",
+            2)
+        {
+            Id = 2
+        });
+
+        posts.Add(new Post(
+            "My third post",
+            "This is another post",
+            1)
+        {
+            Id = 3
+        });
+    }
+
     public Task<Post> AddAsync(Post post)
     {
         post.Id = posts.Any()

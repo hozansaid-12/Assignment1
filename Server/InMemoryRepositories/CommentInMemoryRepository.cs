@@ -1,3 +1,4 @@
+
 using Entities;
 using RepositoryContracts;
 
@@ -6,32 +7,24 @@ namespace InMemoryRepositories;
 public class CommentInMemoryRepository : ICommentRepository
 {
     private readonly List<Comment> comments = new();
+
     public CommentInMemoryRepository()
-{
-    comments.Add(new Comment
     {
-        Id = 1,
-        Body = "Nice post!",
-        UserId = 2,
-        PostId = 1
-    });
+        comments.Add(new Comment("Nice post!", 2, 1)
+        {
+            Id = 1
+        });
 
-    comments.Add(new Comment
-    {
-        Id = 2,
-        Body = "Thanks for sharing",
-        UserId = 3,
-        PostId = 1
-    });
+        comments.Add(new Comment("Thanks for sharing", 3, 1)
+        {
+            Id = 2
+        });
 
-    comments.Add(new Comment
-    {
-        Id = 3,
-        Body = "Welcome!",
-        UserId = 1,
-        PostId = 2
-    });
-}
+        comments.Add(new Comment("Welcome!", 1, 2)
+        {
+            Id = 3
+        });
+    }
 
     public Task<Comment> AddAsync(Comment comment)
     {
